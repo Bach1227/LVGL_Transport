@@ -14,17 +14,30 @@ void NS_G2Y(void);
 void NS_Y2R(void);
 void EW_G2Y(void);
 void EW_Y2R(void);
+void ALL_YELLOW(void);
 
 StateNode_t NodeTable[] = 
 {
     {STATE_NS_GO, TimeoutSwitch, NS_G2Y, STATE_NS_WARN},
+    {STATE_NS_GO, KeySwitchOn, ALL_YELLOW, STATE_FREE},
+
     {STATE_NS_WARN, TimeoutSwitch, NS_Y2R, STATE_EW_GO},
+    {STATE_NS_WARN, KeySwitchOn, ALL_YELLOW, STATE_FREE},
+    
     {STATE_EW_GO, TimeoutSwitch, EW_G2Y, STATE_EW_WARN},
+    {STATE_EW_GO, KeySwitchOn, ALL_YELLOW, STATE_FREE},
+    
     {STATE_EW_WARN, TimeoutSwitch, EW_Y2R, STATE_NS_GO},
+    {STATE_EW_WARN, KeySwitchOn, ALL_YELLOW, STATE_FREE},
+
+    {STATE_FREE, TimeoutSwitch, ALL_YELLOW, STATE_FREE},
+    {STATE_FREE, KeySwitchoff, EW_Y2R, STATE_NS_GO},
 };
 
+#define NodeTableSize sizeof(NodeTable)/sizeof(StateNode_t)
+
 void Engine(TrafficEvent_t event) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < NodeTableSize; i++) {
         // 查找匹配的 当前状态 和 触发事件
         if (NodeTable[i].current_state == current_state && 
             NodeTable[i].event == event) {
@@ -96,7 +109,28 @@ void EW_Y2R(void)
     // LCD_Fill(0,0,LCD_W, LCD_H, BLUE);
 }
 
-
+void ALL_YELLOW(void)
+{
+    //黄灯闪烁
+    static uint8_t onoff = 1;
+    if(onoff == 1)
+    {
+        set_traffic_light_exclusive(&lightbox_n, LIGHT_YELLOW); // 修改为绿灯
+        set_traffic_light_exclusive(&lightbox_s, LIGHT_YELLOW); // 修改为绿灯
+        set_traffic_light_exclusive(&lightbox_e, LIGHT_YELLOW);   // 修改为红灯
+        set_traffic_light_exclusive(&lightbox_w, LIGHT_YELLOW);   // 修改为红灯
+    }
+    else
+    {
+        set_traffic_light_exclusive(&lightbox_n, LIGHT_ALL_OFF); // 修改为绿灯
+        set_traffic_light_exclusive(&lightbox_s, LIGHT_ALL_OFF); // 修改为绿灯
+        set_traffic_light_exclusive(&lightbox_e, LIGHT_ALL_OFF);   // 修改为红灯
+        set_traffic_light_exclusive(&lightbox_w, LIGHT_ALL_OFF);   // 修改为红灯
+    }
+    onoff = !onoff;
+    xTimerChangePeriod(LightSwitch_Timer, 500, 0);
+    xTimerStart(LightSwitch_Timer, 0);
+}
 
 static void Transport_Task(void* arg)
 {
@@ -130,4 +164,19 @@ void Transport_Init(void)
     set_traffic_light_exclusive(&lightbox_s, LIGHT_RED);
     set_traffic_light_exclusive(&lightbox_e, LIGHT_RED);
     set_traffic_light_exclusive(&lightbox_w, LIGHT_RED);
+}
+
+void Transport_Free(uint8_t isfree)
+{
+    if (isfree == 1)
+    {
+        TrafficEvent_t event = KeySwitchOn;
+        xQueueSendFromISR(EventQueue, &event, 0);
+    }
+    else
+    {
+        TrafficEvent_t event = KeySwitchoff;
+        xQueueSendFromISR(EventQueue, &event, 0);
+    }
+    
 }

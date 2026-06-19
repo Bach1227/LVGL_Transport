@@ -19,12 +19,15 @@ typedef enum {
     STATE_NS_WARN,
     STATE_EW_GO,
     STATE_EW_WARN,
+    STATE_FREE,
     STATE_MAX
 } TrafficState_e;
 
 typedef enum
 {
     TimeoutSwitch = 0,
+    KeySwitchOn,
+    KeySwitchoff,
 }TrafficEvent_t;
 
 typedef void (*TrafficAction)(void);
@@ -42,5 +45,7 @@ typedef struct {
 void ScreenLearning_Init(void);
 
 void Transport_Init(void);
+
+void Transport_Free(uint8_t isfree);
 
 #endif
