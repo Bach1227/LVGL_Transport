@@ -178,5 +178,4 @@ void Transport_Free(uint8_t isfree)
         TrafficEvent_t event = KeySwitchoff;
         xQueueSendFromISR(EventQueue, &event, 0);
     }
-    
 }

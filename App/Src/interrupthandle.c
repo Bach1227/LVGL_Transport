@@ -21,5 +21,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
         static uint8_t isfree = 1;
         Transport_Free(isfree);
+        isfree = !isfree;
     }
 }
